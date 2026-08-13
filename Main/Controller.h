@@ -14,12 +14,6 @@ public:
   // Cambiar dirección global del robot. AVANCE NORMAL
   void setDirection(float direction);
 
-  /*
-  // Giro axial
-  void turnLeft();
-  void turnRight();
-  */
-
   // Cambiar altura global del robot.
   void setHeight(float height);
 
@@ -41,15 +35,6 @@ public:
 
 
 private:
-  /*
-  enum MotionMode {
-    WALK,
-    TURN_LEFT,
-    TURN_RIGHT
-  };
-
-  MotionMode _motionMode = WALK;
-  */
   
   // Dirección global del robot en grados.
   float _direction;

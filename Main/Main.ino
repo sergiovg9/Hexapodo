@@ -7,11 +7,6 @@
 //Temporal(?)
 #include "ValidacionServos.h"
 
-/*
-#define PIN_GIRO_DERECHA 34
-#define PIN_GIRO_IZQUIERDA 35
-*/
-
 // OBJETOS
 Robot robot;
 Workspace workspaceManager;
@@ -27,6 +22,17 @@ float alturaRobot = -150.0f;
 
 // Indica que es necesario calcular una nueva trayectoria.
 bool nuevaTrayectoria = true;
+
+// ==========Control TEMPORAL de giro =======
+const uint8_t PIN_GIRO_IZQUIERDA = 27;
+const uint8_t PIN_GIRO_DERECHA = 26;
+
+// La interrupción solamente avisa que cambió un pin.
+volatile bool cambioModo = true;
+
+// Modo actual del robot.
+MotionPlanner::MovementMode modoMovimiento = MotionPlanner::WALK;
+
 
 // CONFIGURAR NUEVO COMANDO
 // Esta función podrá ser llamada posteriormente por Controller.
@@ -44,10 +50,25 @@ void setCommand(float nuevaDireccion, float nuevaAltura) {
   nuevaTrayectoria = true;
 }
 
+// INTERRUPCIÓN DE CAMBIO DE MODO
+void IRAM_ATTR interrupcionModo() {
+  // Solo avisamos al loop.
+  cambioModo = true;
+}
+
 // SETUP
 void setup() {
   // Iniciar I2C.
   Wire.begin();
+
+
+  // Pines TEMPORALES de control de giro.
+  pinMode(PIN_GIRO_IZQUIERDA, INPUT_PULLDOWN);
+  pinMode(PIN_GIRO_DERECHA, INPUT_PULLDOWN);
+  // Detectar tanto cuando se presiona como cuando se suelta.
+  attachInterrupt(digitalPinToInterrupt(PIN_GIRO_IZQUIERDA), interrupcionModo, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_GIRO_DERECHA), interrupcionModo, CHANGE);
+
 
   delay(500);
 
@@ -58,12 +79,6 @@ void setup() {
   validacionServos.begin(
     robot.getPcaA(),
     robot.getPcaB());
-
-  /*
-  //Giro axial
-  pinMode(PIN_GIRO_DERECHA, INPUT);
-  pinMode(PIN_GIRO_IZQUIERDA, INPUT);
-  */
 
   // Inicializar workspace.
   workspaceManager.begin();
@@ -90,6 +105,41 @@ void setup() {
   nuevaTrayectoria = true;
 }
 
+// ACTUALIZAR MODO DE MOVIMIENTO
+void actualizarModoMovimiento() {
+
+  // Solo entrar cuando una interrupción indicó un cambio.
+  if (!cambioModo) {
+    return;
+  }
+
+  // Limpiar bandera.
+  cambioModo = false;
+
+  // Leer los pines una sola vez.
+  bool izquierda = digitalRead(PIN_GIRO_IZQUIERDA);
+  bool derecha = digitalRead(PIN_GIRO_DERECHA);
+
+  MotionPlanner::MovementMode nuevoModo;
+
+  if (izquierda && !derecha) {
+    // D27 HIGH -> giro izquierda.
+    nuevoModo = MotionPlanner::TURN_LEFT;
+  } else if (derecha && !izquierda) {
+    // D26 HIGH -> giro derecha.
+    nuevoModo = MotionPlanner::TURN_RIGHT;
+  } else {
+    // Ninguno activo, o ambos activos: volver a caminata normal.
+    nuevoModo = MotionPlanner::WALK;
+  }
+
+  // Solo recalcular si realmente cambió el modo.
+  if (nuevoModo != modoMovimiento) {
+    modoMovimiento = nuevoModo;
+    nuevaTrayectoria = true;
+  }
+}
+
 void loop() {
   //========Temporal?
   if (digitalRead(25) == HIGH) {
@@ -97,12 +147,15 @@ void loop() {
     return;
   }
 
+  // Revisar cambio de caminata/giro.
+  actualizarModoMovimiento();
+
 
   // ACTUALIZAR TRAYECTORIA
 
   // Solo recalcular cuando cambie dirección o altura.
   if (nuevaTrayectoria) {
-    bool trayectoriaOK = motionPlanner.calculateTrajectories(direccionRobot, alturaRobot);
+    bool trayectoriaOK = motionPlanner.calculateTrajectories(direccionRobot, alturaRobot, modoMovimiento);
 
     // Solo usar la nueva trayectoria si es válida.
     if (trayectoriaOK) {

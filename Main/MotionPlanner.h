@@ -29,6 +29,13 @@ public:
     Point3D flight;
   };
 
+  // Tipo de movimiento.
+  enum MovementMode {
+    WALK,
+    TURN_LEFT,
+    TURN_RIGHT
+  };
+
   // Constructor.
   MotionPlanner();
 
@@ -36,7 +43,7 @@ public:
   void begin(Robot* robot, Workspace* workspace);
 
   // Calcular las trayectorias de las 6 patas.
-  bool calculateTrajectories(float globalDirection, float height);
+  bool calculateTrajectories(float globalDirection, float height, MovementMode mode = WALK);
 
   // Obtener punto durante stance.
   Point3D getStancePoint(uint8_t legID, float t) const;
