@@ -28,6 +28,9 @@ float alturaRobot = -150.0f;
 // Indica que es necesario calcular una nueva trayectoria.
 bool nuevaTrayectoria = true;
 
+// Indica si la marcha ya fue iniciada.
+bool marchaIniciada = false;
+
 // CONFIGURAR NUEVO COMANDO
 // Esta función podrá ser llamada posteriormente por Controller.
 void setCommand(float nuevaDireccion, float nuevaAltura) {
@@ -106,10 +109,12 @@ void loop() {
 
     // Solo usar la nueva trayectoria si es válida.
     if (trayectoriaOK) {
-      // Reiniciar la marcha con la nueva trayectoria.
-      gait.start();
-
-      // Ya no es necesario recalcular.
+      // Iniciar Gait solamente la primera vez.
+      if (!marchaIniciada) {
+        gait.start();
+        marchaIniciada = true;
+      }
+      // En cambios posteriores NO reiniciar Gait.
       nuevaTrayectoria = false;
     }
   }
