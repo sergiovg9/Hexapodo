@@ -24,8 +24,6 @@ void Controller::begin() {
 
 // CAMBIAR DIRECCIÓN
 void Controller::setDirection(float direction) {
-  //_motionMode = WALK;
-
   // Normalizar dirección.
   direction = normalizeDirection(direction);
 
@@ -40,27 +38,6 @@ void Controller::setDirection(float direction) {
   // Solicitar nueva trayectoria.
   _changed = true;
 }
-
-
-/*
-//GIROS AXIALES
-void Controller::turnLeft() {
-  _motionMode = TURN_LEFT;
-
-  // Todas las patas usan exactamente la misma dirección local
-  for (int i = 0; i < 6; i++) {
-    _localDirections[i] = -90.0f;
-  }
-}
-
-void Controller::turnRight() {
-  _motionMode = TURN_RIGHT;
-  // Todas las patas usan exactamente la misma dirección local
-  for (int i = 0; i < 6; i++) {
-    _localDirections[i] = 90.0f;
-  }
-}
-*/
 
 
 // CAMBIAR ALTURA

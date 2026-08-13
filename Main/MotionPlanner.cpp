@@ -27,7 +27,7 @@ void MotionPlanner::begin(Robot* robot, Workspace* workspace) {
 }
 
 // CALCULAR TRAYECTORIAS
-bool MotionPlanner::calculateTrajectories(float globalDirection, float height) {
+bool MotionPlanner::calculateTrajectories(float globalDirection, float height, MovementMode mode) {
   // Verificar módulos.
   if (_robot == nullptr || _workspace == nullptr) {
     return false;
@@ -39,8 +39,21 @@ bool MotionPlanner::calculateTrajectories(float globalDirection, float height) {
 
   // CALCULAR CADA PATA
   for (uint8_t legID = 0; legID < 6; legID++) {
-    // Calcular dirección local real de la pata: 0° - 360°.
-    float localDirection = calculateLocalDirection(legID, _globalDirection);
+    // Elegir dirección local dependiendo del modo.
+    float localDirection;
+
+    if (mode == TURN_LEFT) {
+      // Giro axial hacia la izquierda.Todas las patas recorren dirección local 90°.
+      localDirection = 90.0f;
+
+    } else if (mode == TURN_RIGHT) {
+      // Giro axial hacia la derecha.
+      localDirection = 270.0f;
+
+    } else {
+      // Caminata normal.
+      localDirection = calculateLocalDirection(legID, _globalDirection);
+    }
 
     _localDirection[legID] = localDirection;
 
@@ -62,11 +75,6 @@ bool MotionPlanner::calculateTrajectories(float globalDirection, float height) {
 
     // Buscar usando solamente 0° - 180°.
     bool groundOK = _workspace->getLine(_height, workspaceDirection, groundLine);
-
-    if (!groundOK) {
-      _trajectoryReady = false;
-      return false;
-    }
 
     if (!groundOK) {
       _trajectoryReady = false;
@@ -104,7 +112,7 @@ bool MotionPlanner::calculateTrajectories(float globalDirection, float height) {
     LineaTrabajo flightLine;
 
     // El punto de vuelo se consulta a 0°: Usamos el primer punto de la línea superior. Este será el punto de control de la curva Bézier del movimiento de vuelo.
-    bool flightOK = _workspace->getLine(flightHeight, localDirection, flightLine);
+    bool flightOK = _workspace->getLine(flightHeight, workspaceDirection, flightLine);
 
     if (!flightOK) {
       _trajectoryReady = false;
