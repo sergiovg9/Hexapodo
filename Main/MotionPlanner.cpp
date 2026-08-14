@@ -58,16 +58,8 @@ bool MotionPlanner::calculateTrajectories(float globalDirection, float height, M
     _localDirection[legID] = localDirection;
 
 
-    // El Workspace solo contiene ángulos de 0° a 178°. Para direcciones de 180° a 360° usamos la línea opuesta.
-    float workspaceDirection = localDirection;
-
-    // Indica si debemos recorrer la línea al revés.
-    bool invertirLinea = false;
-
-    if (workspaceDirection >= 180.0f) {
-      workspaceDirection -= 180.0f;
-      invertirLinea = true;
-    }
+    // El Workspace contiene todas las direcciones de 0° a 358°.
+    float workspaceDirection = normalizeAngle(localDirection);
 
 
     // BUSCAR LÍNEA DEL SUELO
@@ -82,25 +74,12 @@ bool MotionPlanner::calculateTrajectories(float globalDirection, float height, M
     }
 
     // INICIO Y FINAL.
-    // Si era mayor a 180°, recorremos la misma línea al revés.
+    // Cada dirección tiene su propia línea en el Workspace.
+    _trajectory[legID].start.x = groundLine.xi;
+    _trajectory[legID].start.y = groundLine.yi;
 
-    if (!invertirLinea) {
-
-      _trajectory[legID].start.x = groundLine.xi;
-      _trajectory[legID].start.y = groundLine.yi;
-
-      _trajectory[legID].end.x = groundLine.xf;
-      _trajectory[legID].end.y = groundLine.yf;
-
-    } else {
-
-      // Dirección opuesta: intercambiar inicio y final.
-      _trajectory[legID].start.x = groundLine.xf;
-      _trajectory[legID].start.y = groundLine.yf;
-
-      _trajectory[legID].end.x = groundLine.xi;
-      _trajectory[legID].end.y = groundLine.yi;
-    }
+    _trajectory[legID].end.x = groundLine.xf;
+    _trajectory[legID].end.y = groundLine.yf;
 
     _trajectory[legID].start.z = _height;
     _trajectory[legID].end.z = _height;

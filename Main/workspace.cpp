@@ -18,7 +18,7 @@ bool Workspace::getLine(float height, float angle, LineaTrabajo& line) const {
     return false;
   }
 
-  // Normalizar ángulo.
+  // Normalizar ángulo entre 0° y 360°.
   angle = normalizeAngle(angle);
 
   // Buscar índices.
@@ -35,6 +35,7 @@ bool Workspace::getLine(float height, float angle, LineaTrabajo& line) const {
 
   return true;
 }
+
 
 // BUSCAR ALTURA
 int Workspace::findHeightIndex(float height) const {
@@ -54,23 +55,26 @@ int Workspace::findHeightIndex(float height) const {
   return bestIndex;
 }
 
+
 // BUSCAR ÁNGULO
 int Workspace::findAngleIndex(float angle) const {
-  int bestIndex = 0;
+  // Los ángulos están separados exactamente cada 2°:
+  // 0, 2, 4, ..., 358.
 
-  float bestDifference = fabs(angle - angulos[0]);
+  int index = (int)round(angle / 2.0f);
 
-  for (int i = 1; i < NUM_ANGULOS; i++) {
-    float difference = fabs(angle - angulos[i]);
-
-    if (difference < bestDifference) {
-      bestDifference = difference;
-      bestIndex = i;
-    }
+  // Ejemplo:
+  // 359° / 2 = 179.5 -> round() = 180.
+  //
+  // Pero el índice 180 no existe.
+  // 360° equivale nuevamente a 0°.
+  if (index >= NUM_ANGULOS) {
+    index = 0;
   }
 
-  return bestIndex;
+  return index;
 }
+
 
 // NORMALIZAR ÁNGULO
 float Workspace::normalizeAngle(float angle) const {

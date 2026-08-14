@@ -23,7 +23,7 @@ q3_min = -90;
 q3_max = 0;
 
 % Resolucion angular
-paso = 1.5;       % grados
+paso = 2;       % grados
 
 
 %% ============================================================
@@ -83,9 +83,94 @@ ylabel("Y");
 zlabel("Z");
 title("Workspace completo");
 
+%% ============================================================
+% 4. GENERAR CUERPO GEOMETRICO CONTINUO DEL WORKSPACE
+% =============================================================
+
+% Crear alphaShape inicialmente sin fijar Alpha
+workspaceBody = alphaShape( ...
+    workspace(:,1), ...
+    workspace(:,2), ...
+    workspace(:,3));
+
+
+% =============================================================
+% CALCULAR UNA ESCALA ESPACIAL DE LA NUBE
+% =============================================================
+%
+% La separación entre puntos NO debe interpretarse como huecos
+% reales del workspace.
+%
+% Se estima una distancia característica entre puntos vecinos.
+%
+
+DT = delaunayTriangulation(workspace(:,1:3));
+
+E = edges(DT);
+
+P1 = DT.Points(E(:,1),:);
+P2 = DT.Points(E(:,2),:);
+
+distancias = sqrt(sum((P1-P2).^2,2));
+
+
+% Ignorar conexiones largas producidas por la triangulación.
+% Nos interesan solamente las conexiones locales.
+
+distanciaLocal = median(distancias);
+
+
+% =============================================================
+% ALPHA DEL CUERPO
+% =============================================================
+%
+% IMPORTANTE:
+%
+% No usar:
+%
+% criticalAlpha(...,'all-points')
+%
+% porque obliga al cuerpo a envolver puntos alejados y termina
+% cerrando concavidades reales.
+%
+% Alpha se fija usando solamente la separación local de puntos.
+%
+
+factorAlpha = 2.5;
+
+alphaWorkspace = factorAlpha * distanciaLocal;
+
+workspaceBody.Alpha = alphaWorkspace;
+
+
+fprintf("Distancia local: %.3f mm\n",distanciaLocal);
+fprintf("Alpha utilizado: %.3f mm\n",alphaWorkspace);
+
+
+% =============================================================
+% VISUALIZACION
+% =============================================================
+
+figure;
+
+plot(workspaceBody);
+
+axis equal;
+grid on;
+
+xlabel('X (mm)');
+ylabel('Y (mm)');
+zlabel('Z (mm)');
+
+title('Cuerpo continuo del workspace');
+
+view(3);
+
+rotate3d on;
+
 
 %% ============================================================
-% 4. DISCRETIZACION DE ALTURAS
+% 5. DISCRETIZACION DE ALTURAS
 % =============================================================
 
 % Límite físico calculado por la cinemática
@@ -106,179 +191,235 @@ poligonos = struct();
 
 
 %% ============================================================
-% 5. GENERAR POLIGONOS (CONCAVE HULL)
+% 6. GENERAR POLIGONO ALCANZABLE EN CADA ALTURA
 % =============================================================
 
-tolerancia = 1.3;
+poligonos = struct();
 
-contador = 1;
+% Resolución espacial utilizada para hacer cada corte.
+% 0.5 mm da bastante precisión.
+resXY = 0.5;
 
-alpha = 18;      % Ajustar entre 12 y 30 según el resultado
 
-for n = 1:length(z_levels)
+% ------------------------------------------------------------
+% Límites generales del cuerpo
+% ------------------------------------------------------------
 
-    zActual = z_levels(n);
+xmin = min(workspace(:,1));
+xmax = max(workspace(:,1));
 
-    % En el límite físico usamos una capa especialmente fina para
-    % no sobreestimar el área alcanzable en máxima extensión.
-    if n == 1
-        toleranciaActual = 0.05;
-    else
-        toleranciaActual = tolerancia;
+ymin = min(workspace(:,2));
+ymax = max(workspace(:,2));
+
+
+% ------------------------------------------------------------
+% Malla XY utilizada para hacer los cortes
+% ------------------------------------------------------------
+
+xGrid = xmin:resXY:xmax;
+yGrid = ymin:resXY:ymax;
+
+[Xgrid,Ygrid] = meshgrid(xGrid,yGrid);
+
+
+% ------------------------------------------------------------
+% Recorrer todas las alturas
+% ------------------------------------------------------------
+
+contadorPoligono = 1;
+
+for h = 1:length(z_levels)
+
+    Z = z_levels(h);
+
+    fprintf("Generando poligono %d de %d | Z = %.1f\n", ...
+        h,length(z_levels),Z);
+
+
+    % ========================================================
+    % 1. HACER CORTE DEL CUERPO EN ESTA ALTURA
+    % ========================================================
+
+    Zgrid = Z * ones(size(Xgrid));
+
+    dentro = inShape( ...
+        workspaceBody, ...
+        Xgrid(:), ...
+        Ygrid(:), ...
+        Zgrid(:));
+
+    dentro = reshape(dentro,size(Xgrid));
+
+
+    % Si en esta altura no existe workspace
+    if ~any(dentro,'all')
+        continue;
     end
-    
-    indices = abs(workspace(:,3)-zActual) <= toleranciaActual;
 
-    puntos = workspace(indices,:);
 
-    if size(puntos,1)<4
-        continue
-    end
+    % ========================================================
+    % 2. ENCONTRAR UN PUNTO DE LA REGION EXTERIOR
+    %
+    % Se utiliza el punto alcanzable con mayor X.
+    %
+    % Esto hace que la búsqueda comience directamente en la
+    % zona útil más alejada del robot.
+    % ========================================================
 
-    XY = puntos(:,1:2);
+    [filas,columnas] = find(dentro);
 
-    DT = delaunayTriangulation(XY);
+    valoresX = Xgrid(sub2ind(size(Xgrid),filas,columnas));
 
-    T = DT.ConnectivityList;
-    P = DT.Points;
+    [~,indiceMayorX] = max(valoresX);
 
-    mantener = false(size(T,1),1);
+    filaInicial = filas(indiceMayorX);
+    columnaInicial = columnas(indiceMayorX);
 
-    for i=1:size(T,1)
 
-        p1 = P(T(i,1),:);
-        p2 = P(T(i,2),:);
-        p3 = P(T(i,3),:);
+    % ========================================================
+    % 3. RECORRER SOLO LA REGION CONECTADA AL PUNTO DE MAYOR X
+    %
+    % Las demás regiones NO se detectan.
+    % La búsqueda nunca entra en ellas.
+    % ========================================================
 
-        a = norm(p2-p1);
-        b = norm(p3-p2);
-        c = norm(p1-p3);
+    region = false(size(dentro));
 
-        s = (a+b+c)/2;
+    % Cola para flood-fill
+    maxElementos = nnz(dentro);
 
-        A = sqrt(max(s*(s-a)*(s-b)*(s-c),0));
+    colaFila = zeros(maxElementos,1);
+    colaColumna = zeros(maxElementos,1);
 
-        if A<1e-8
-            continue
+    inicioCola = 1;
+    finCola = 1;
+
+    colaFila(1) = filaInicial;
+    colaColumna(1) = columnaInicial;
+
+    region(filaInicial,columnaInicial) = true;
+
+
+    while inicioCola <= finCola
+
+        f = colaFila(inicioCola);
+        c = colaColumna(inicioCola);
+
+        inicioCola = inicioCola + 1;
+
+
+        % ----------------------------------------------
+        % Revisar los 8 vecinos
+        % ----------------------------------------------
+
+        for df = -1:1
+
+            for dc = -1:1
+
+                if df == 0 && dc == 0
+                    continue;
+                end
+
+                fn = f + df;
+                cn = c + dc;
+
+
+                % Comprobar límites
+                if fn < 1 || fn > size(dentro,1)
+                    continue;
+                end
+
+                if cn < 1 || cn > size(dentro,2)
+                    continue;
+                end
+
+
+                % El punto debe:
+                %
+                % 1. pertenecer al cuerpo
+                % 2. no haber sido visitado
+                % --------------------------------------
+
+                if dentro(fn,cn) && ~region(fn,cn)
+
+                    region(fn,cn) = true;
+
+                    finCola = finCola + 1;
+
+                    colaFila(finCola) = fn;
+                    colaColumna(finCola) = cn;
+
+                end
+
+            end
+
         end
 
-        R = a*b*c/(4*A);
-
-        if R < alpha
-            mantener(i)=true;
-        end
-
     end
 
-    T = T(mantener,:);
 
-    if isempty(T)
-        continue
+    % ========================================================
+    % 4. EXTRAER LOS PUNTOS DE LA REGION SELECCIONADA
+    % ========================================================
+
+    Xregion = Xgrid(region);
+    Yregion = Ygrid(region);
+
+
+    % Por seguridad
+    if length(Xregion) < 3
+        continue;
     end
 
-    E = [
-        T(:,[1 2]);
-        T(:,[2 3]);
-        T(:,[3 1])
+
+    % ========================================================
+    % 5. OBTENER SOLO EL CONTORNO
+    %
+    % boundary conserva concavidades, a diferencia de convhull.
+    % ========================================================
+
+    factorContraccion = 0.90;
+
+    indicesContorno = boundary( ...
+        Xregion, ...
+        Yregion, ...
+        factorContraccion);
+
+
+    XY = [
+        Xregion(indicesContorno) ...
+        Yregion(indicesContorno)
+    ];
+
+
+    % ========================================================
+    % 6. CERRAR POLIGONO
+    % ========================================================
+
+    if any(XY(1,:) ~= XY(end,:))
+
+        XY = [
+            XY
+            XY(1,:)
         ];
 
-    E = sort(E,2);
-
-    [U,~,ic] = unique(E,'rows');
-
-    veces = accumarray(ic,1);
-
-    borde = U(veces==1,:);
-
-    if size(borde,1)<3
-        continue
     end
 
-    vecinos = cell(size(P,1),1);
 
-    for i=1:size(borde,1)
+    % ========================================================
+    % 7. GUARDAR
+    % ========================================================
 
-        a = borde(i,1);
-        b = borde(i,2);
+    poligonos(contadorPoligono).z = Z;
 
-        vecinos{a}(end+1)=b;
-        vecinos{b}(end+1)=a;
+    poligonos(contadorPoligono).XY = XY;
 
-    end
-
-    visitado = false(size(P,1),1);
-
-    mejorOrden = [];
-    mejorLongitud = 0;
-    
-    for inicio = 1:size(P,1)
-    
-        if visitado(inicio)
-            continue
-        end
-    
-        if isempty(vecinos{inicio})
-            continue
-        end
-    
-        anterior = 0;
-        actual = inicio;
-    
-        orden = [];
-    
-        while true
-    
-            if visitado(actual)
-                break
-            end
-    
-            visitado(actual)=true;
-    
-            orden(end+1)=actual;
-    
-            v = vecinos{actual};
-    
-            if isempty(v)
-                break
-            elseif length(v)==1
-                siguiente=v(1);
-            else
-    
-                if v(1)==anterior
-                    siguiente=v(2);
-                else
-                    siguiente=v(1);
-                end
-    
-            end
-    
-            anterior=actual;
-            actual=siguiente;
-    
-            if actual==inicio
-                break
-            end
-    
-        end
-    
-        if length(orden)>mejorLongitud
-    
-            mejorLongitud=length(orden);
-            mejorOrden=orden;
-    
-        end
-    
-    end
-    
-    poligonos(contador).z = zActual;
-    poligonos(contador).XY = P(mejorOrden,:);
-
-    contador = contador+1;
+    contadorPoligono = contadorPoligono + 1;
 
 end
 
-fprintf("Poligonos obtenidos: %d\n",length(poligonos));
 
+fprintf("Poligonos generados: %d\n",length(poligonos));
 
 %% ============================================================
 % 7. GRAFICAR POLIGONOS POR ALTURA (3D)

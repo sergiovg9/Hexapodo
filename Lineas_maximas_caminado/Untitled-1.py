@@ -5,7 +5,7 @@ import pandas as pd
 # Configuración
 # ==========================
 CSV_ENTRADA = "LineasMaximas.csv"
-ARCHIVO_SALIDA = "workspace.h"
+ARCHIVO_SALIDA = "SalidaWorkspace.cpp"
 
 # ==========================
 # Leer CSV
@@ -34,15 +34,7 @@ angulos = sorted(df["angulo"].unique())
 # ==========================
 with open(ARCHIVO_SALIDA, "w") as f:
 
-    f.write("#pragma once\n\n")
-
-    f.write("struct LineaTrabajo {\n")
-    f.write("    float xi;\n")
-    f.write("    float yi;\n")
-    f.write("    float xf;\n")
-    f.write("    float yf;\n")
-    f.write("    float longitud;\n")
-    f.write("};\n\n")
+    f.write("#include \"WorkspaceData.h\"\n\n")
 
     f.write(f"const int NUM_ALTURAS = {len(alturas)};\n")
     f.write(f"const int NUM_ANGULOS = {len(angulos)};\n\n")
