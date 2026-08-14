@@ -15,6 +15,8 @@ public:
   // Buscar línea para una altura y ángulo.
   bool getLine(float height, float angle, LineaTrabajo& line) const;
 
+  float getNearestHeight(float height) const;
+
 
 
 private:

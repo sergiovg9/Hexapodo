@@ -13,11 +13,6 @@ void Workspace::begin() {
 
 // OBTENER LÍNEA
 bool Workspace::getLine(float height, float angle, LineaTrabajo& line) const {
-  // Verificar altura.
-  if (height < alturas[0] || height > alturas[NUM_ALTURAS - 1]) {
-    return false;
-  }
-
   // Normalizar ángulo entre 0° y 360°.
   angle = normalizeAngle(angle);
 
@@ -53,6 +48,17 @@ int Workspace::findHeightIndex(float height) const {
   }
 
   return bestIndex;
+}
+
+float Workspace::getNearestHeight(float height) const {
+
+  int index = findHeightIndex(height);
+
+  if (index < 0) {
+    return height;
+  }
+
+  return alturas[index];
 }
 
 

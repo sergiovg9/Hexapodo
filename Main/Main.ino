@@ -18,7 +18,7 @@ ValidacionServos validacionServos;
 // Valores predeterminados.
 // Después Controller podrá modificar estas variables.
 float direccionRobot = 50.0f;
-float alturaRobot = -150.0f;
+float alturaRobot = -170.0f;
 
 // Indica que es necesario calcular una nueva trayectoria.
 bool nuevaTrayectoria = true;

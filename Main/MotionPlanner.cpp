@@ -35,7 +35,7 @@ bool MotionPlanner::calculateTrajectories(float globalDirection, float height, M
 
   // Guardar comando actual.
   _globalDirection = normalizeAngle(globalDirection);
-  _height = height;
+  _height = _workspace->getNearestHeight(height);
 
   // CALCULAR CADA PATA
   for (uint8_t legID = 0; legID < 6; legID++) {
@@ -86,7 +86,9 @@ bool MotionPlanner::calculateTrajectories(float globalDirection, float height, M
 
     // PUNTO DE VUELO
     // El workspace está separado cada 5 mm. 20 alturas equivalen a 100 mm.
-    float flightHeight = _height + 100.0f;
+    float requestedFlightHeight = _height + 100.0f;
+
+    float flightHeight = _workspace->getNearestHeight(requestedFlightHeight);
 
     LineaTrabajo flightLine;
 
