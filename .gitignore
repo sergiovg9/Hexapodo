@@ -1,6 +1,6 @@
-*.mat
-*.csv
-*.png
-*.pdf
-*.asv
+Lineas_maximas_caminado/*.mat
+Lineas_maximas_caminado/*.csv
+Lineas_maximas_caminado/*.png
+Lineas_maximas_caminado/*.pdf
+Lineas_maximas_caminado/*.asv
 Lineas_maximas_caminado/SalidaWorkspace.cpp
