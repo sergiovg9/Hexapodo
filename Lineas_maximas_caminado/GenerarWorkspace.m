@@ -250,6 +250,9 @@ for h = 1:length(z_levels)
 
     dentro = reshape(dentro,size(Xgrid));
 
+    % Ignorar toda el área detrás de X = 0
+    dentro(Xgrid < 0) = false;
+
 
     % Si en esta altura no existe workspace
     if ~any(dentro,'all')
