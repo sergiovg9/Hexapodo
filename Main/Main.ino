@@ -17,13 +17,13 @@ Gait gait;
 //Temporal(?)
 ValidacionServos validacionServos;
 
-// Valores predeterminados.
-// Altura utilizada solamente para HOME.
+// Valores predeterminados. Altura utilizada solamente para HOME.
 float alturaHome = -110.0f;
 
-// Después Controller podrá modificar estas variables.
+//Variables globales controlables
 float direccionRobot = 200.0f;
 float alturaRobot = -150.0f;
+float velocidadRobot = 0.4f;
 
 // Indica que es necesario calcular una nueva trayectoria.
 bool nuevaTrayectoria = true;
@@ -210,7 +210,7 @@ void loop() {
 
   // Revisar cambio de dirección.
   actualizarDireccion();
-  
+
   // Revisar cambio de altura.
   actualizarAltura();
 
@@ -235,7 +235,7 @@ void loop() {
 
   // MARCHA
   // Recorrer las trayectorias ya calculadas.
-  gait.update();
+  gait.update(velocidadRobot);
   // Suavizar y actualizar los servos.
   robot.update();
 }

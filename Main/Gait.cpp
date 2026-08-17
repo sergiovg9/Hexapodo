@@ -7,8 +7,6 @@ Gait::Gait() {
 
   _phase = 0.0f;
 
-  // Velocidad inicial de marcha.
-  _speed = 0.4f;
   _lastUpdate = 0;
   _running = false;
 }
@@ -33,18 +31,8 @@ void Gait::start() {
   _running = true;
 }
 
-// VELOCIDAD
-void Gait::setSpeed(float speed) {
-  // Evitar valores negativos.
-  if (speed < 0.0f) {
-    speed = 0.0f;
-  }
-
-  _speed = speed;
-}
-
 // UPDATE
-void Gait::update() {
+void Gait::update(float speed) {
   // Verificar módulos.
   if (_robot == nullptr || _planner == nullptr) {
     return;
@@ -66,8 +54,13 @@ void Gait::update() {
     dt = 0.1f;
   }
 
-  // Avanzar fase.
-  _phase += _speed * dt;
+  // Evitar velocidad negativa.
+  if (speed < 0.0f) {
+    speed = 0.0f;
+  }
+
+  // Avanzar fase usando la velocidad global.
+  _phase += speed * dt;
 
   // Mantener fase entre 0 y 1.
   while (_phase >= 1.0f) {

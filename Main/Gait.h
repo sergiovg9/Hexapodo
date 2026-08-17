@@ -19,10 +19,7 @@ public:
   void start();
 
   // Actualizar marcha.
-  void update();
-
-  // Cambiar velocidad de marcha.
-  void setSpeed(float speed);
+  void update(float speed);
 
 
 
@@ -33,9 +30,6 @@ private:
 
   // Fase general de marcha.
   float _phase;
-
-  // Velocidad de avance de fase.
-  float _speed;
 
   // Tiempo de última actualización.
   unsigned long _lastUpdate;
