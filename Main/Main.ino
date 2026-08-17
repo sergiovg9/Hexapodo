@@ -4,6 +4,7 @@
 #include "Workspace.h"
 #include "MotionPlanner.h"
 #include "Gait.h"
+
 //Temporal(?)
 #include "ValidacionServos.h"
 
@@ -12,19 +13,23 @@ Robot robot;
 Workspace workspaceManager;
 MotionPlanner motionPlanner;
 Gait gait;
+
 //Temporal(?)
 ValidacionServos validacionServos;
 
 // Valores predeterminados.
+// Altura utilizada solamente para HOME.
+float alturaHome = -110.0f;
+
 // Después Controller podrá modificar estas variables.
-float direccionRobot = 50.0f;
-float alturaRobot = -190.0f;
+float direccionRobot = 290.0f;
+float alturaRobot = -150.0f;
 
 // Indica que es necesario calcular una nueva trayectoria.
 bool nuevaTrayectoria = true;
-
 // Indica si la marcha ya fue iniciada.
 bool marchaIniciada = false;
+
 // ==========Control TEMPORAL de giro =======
 const uint8_t PIN_GIRO_IZQUIERDA = 27;
 const uint8_t PIN_GIRO_DERECHA = 26;
@@ -92,11 +97,10 @@ void setup() {
   gait.begin(&robot, &motionPlanner);
 
   // Establecer posición HOME.
-  robot.goHome();
+  robot.goHome(&workspaceManager, alturaHome);
 
   // Mover suavemente hasta HOME.
   unsigned long tiempoInicio = millis();
-
   while (millis() - tiempoInicio < 2000) {
     robot.update();
     delay(10);

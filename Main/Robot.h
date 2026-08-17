@@ -5,6 +5,7 @@
 #include <Adafruit_PWMServoDriver.h>
 
 #include "Leg.h"
+#include "Workspace.h"
 
 
 class Robot {
@@ -33,8 +34,8 @@ public:
   // Inicializar PCA9685 y patas.
   void begin();
 
-  // Establecer posición HOME.
-  void goHome();
+  // Establecer posición HOME usando el Workspace.
+  bool goHome(Workspace* workspace, float homeHeight);
 
   // Establecer objetivo de una pata.
   bool moveLegTo(uint8_t legID, float x, float y, float z);
@@ -80,10 +81,4 @@ private:
   static constexpr float L1 = 49.25f;
   static constexpr float L2 = 101.63f;
   static constexpr float L3 = 127.92f;
-
-  // HOME
-  // Posición local respecto a la cadera.
-  static constexpr float HOME_X = 100.0f;
-  static constexpr float HOME_Y = 0.0f;
-  static constexpr float HOME_Z = -150.0f;
 };

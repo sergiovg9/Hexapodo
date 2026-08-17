@@ -40,11 +40,48 @@ void Robot::begin() {
 }
 
 // HOME
-void Robot::goHome() {
-  // Todas las patas usan la misma posición local.
-  for (int i = 0; i < 6; i++) {
-    moveLegTo(i, HOME_X, HOME_Y, HOME_Z);
+bool Robot::goHome(Workspace* workspace, float homeHeight) {
+
+  // Verificar Workspace.
+  if (workspace == nullptr) {
+    return false;
   }
+
+  // Buscar la altura disponible más cercana.
+  float altura = workspace->getNearestHeight(homeHeight);
+
+  // Consultar UNA SOLA VEZ la línea de trabajo a 0°.
+  LineaTrabajo homeLine;
+
+  bool lineOK = workspace->getLine(
+    altura,
+    0.0f,
+    homeLine);
+
+  if (!lineOK) {
+    return false;
+  }
+
+  // Calcular punto medio de la línea.
+  float homeX = (homeLine.xi + homeLine.xf) * 0.5f;
+  float homeY = (homeLine.yi + homeLine.yf) * 0.5f;
+  float homeZ = altura;
+
+  // Todas las patas usan exactamente el mismo punto local.
+  for (uint8_t legID = 0; legID < 6; legID++) {
+
+    bool ok = moveLegTo(
+      legID,
+      homeX,
+      homeY,
+      homeZ);
+
+    if (!ok) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 // MOVER UNA PATA
