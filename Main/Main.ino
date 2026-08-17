@@ -22,7 +22,7 @@ ValidacionServos validacionServos;
 float alturaHome = -110.0f;
 
 // Después Controller podrá modificar estas variables.
-float direccionRobot = 290.0f;
+float direccionRobot = 200.0f;
 float alturaRobot = -150.0f;
 
 // Indica que es necesario calcular una nueva trayectoria.
@@ -33,9 +33,11 @@ bool marchaIniciada = false;
 // ==========Control TEMPORAL de giro =======
 const uint8_t PIN_GIRO_IZQUIERDA = 27;
 const uint8_t PIN_GIRO_DERECHA = 26;
+const uint8_t PIN_DIRECCION_50 = 14;
 
 // La interrupción solamente avisa que cambió un pin.
 volatile bool cambioModo = true;
+volatile bool cambioDireccion = false;
 
 // Modo actual del robot.
 MotionPlanner::MovementMode modoMovimiento = MotionPlanner::WALK;
@@ -57,11 +59,19 @@ void setCommand(float nuevaDireccion, float nuevaAltura) {
   nuevaTrayectoria = true;
 }
 
+
 // INTERRUPCIÓN DE CAMBIO DE MODO
 void IRAM_ATTR interrupcionModo() {
   // Solo avisamos al loop.
   cambioModo = true;
 }
+
+// INTERRUPCIÓN PARA CAMBIAR DIRECCIÓN
+void IRAM_ATTR interrupcionDireccion() {
+  // Solo avisamos al loop.
+  cambioDireccion = true;
+}
+
 
 // SETUP
 void setup() {
@@ -72,10 +82,12 @@ void setup() {
   // Pines TEMPORALES de control de giro.
   pinMode(PIN_GIRO_IZQUIERDA, INPUT_PULLDOWN);
   pinMode(PIN_GIRO_DERECHA, INPUT_PULLDOWN);
+  pinMode(PIN_DIRECCION_50, INPUT_PULLDOWN);
+
   // Detectar tanto cuando se presiona como cuando se suelta.
   attachInterrupt(digitalPinToInterrupt(PIN_GIRO_IZQUIERDA), interrupcionModo, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_GIRO_DERECHA), interrupcionModo, CHANGE);
-
+  attachInterrupt(digitalPinToInterrupt(PIN_DIRECCION_50), interrupcionDireccion, RISING);
 
   delay(500);
 
@@ -110,6 +122,7 @@ void setup() {
   // La primera trayectoria se calculará en loop().
   nuevaTrayectoria = true;
 }
+
 
 // ACTUALIZAR MODO DE MOVIMIENTO
 void actualizarModoMovimiento() {
@@ -146,6 +159,20 @@ void actualizarModoMovimiento() {
   }
 }
 
+// ACTUALIZAR DIRECCIÓN
+void actualizarDireccion() {
+
+  // Solo entrar cuando D14 generó una interrupción.
+  if (!cambioDireccion) {
+    return;
+  }
+
+  cambioDireccion = false;
+
+  // Cambiar dirección a 50°.
+  setCommand(50.0f, alturaRobot);
+}
+
 void loop() {
   //========Temporal?
   if (digitalRead(25) == HIGH) {
@@ -155,6 +182,9 @@ void loop() {
 
   // Revisar cambio de caminata/giro.
   actualizarModoMovimiento();
+
+  // Revisar cambio de dirección.
+  actualizarDireccion();
 
 
   // ACTUALIZAR TRAYECTORIA
