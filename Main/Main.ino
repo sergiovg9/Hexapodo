@@ -35,12 +35,14 @@ const uint8_t PIN_GIRO_IZQUIERDA = 27;
 const uint8_t PIN_GIRO_DERECHA = 26;
 const uint8_t PIN_DIRECCION_50 = 14;
 const uint8_t PIN_ALTURA_110 = 12;
+const uint8_t PIN_VELOCIDAD = 13;
 
 
 // La interrupción solamente avisa que cambió un pin.
 volatile bool cambioModo = true;
 volatile bool cambioDireccion = false;
 volatile bool cambioAltura = false;
+volatile bool cambioVelocidad = false;
 
 // Modo actual del robot.
 MotionPlanner::MovementMode modoMovimiento = MotionPlanner::WALK;
@@ -81,6 +83,11 @@ void IRAM_ATTR interrupcionAltura() {
   cambioAltura = true;
 }
 
+//INTERRUPCIÓN PARA CAMBIAR VELOCIDAD
+void IRAM_ATTR interrupcionVelocidad() {
+  cambioVelocidad = true;
+}
+
 
 // SETUP
 void setup() {
@@ -93,12 +100,14 @@ void setup() {
   pinMode(PIN_GIRO_DERECHA, INPUT_PULLDOWN);
   pinMode(PIN_DIRECCION_50, INPUT_PULLDOWN);
   pinMode(PIN_ALTURA_110, INPUT_PULLDOWN);
+  pinMode(PIN_VELOCIDAD, INPUT_PULLDOWN);
 
   // Detectar tanto cuando se presiona como cuando se suelta.
   attachInterrupt(digitalPinToInterrupt(PIN_GIRO_IZQUIERDA), interrupcionModo, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_GIRO_DERECHA), interrupcionModo, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_DIRECCION_50), interrupcionDireccion, RISING);
   attachInterrupt(digitalPinToInterrupt(PIN_ALTURA_110), interrupcionAltura, RISING);
+  attachInterrupt(digitalPinToInterrupt(PIN_VELOCIDAD), interrupcionVelocidad, RISING);
 
   delay(500);
 
@@ -198,6 +207,17 @@ void actualizarAltura() {
   setCommand(direccionRobot, -110.0f);
 }
 
+//ACTUALIZAR VELOCIDAD
+void actualizarVelocidad() {
+  if (!cambioVelocidad) {
+    return;
+  }
+
+  cambioVelocidad = false;
+
+  velocidadRobot = 0.8f;
+}
+
 void loop() {
   //========Temporal?
   if (digitalRead(25) == HIGH) {
@@ -214,6 +234,8 @@ void loop() {
   // Revisar cambio de altura.
   actualizarAltura();
 
+  //Revisar cambio de velocidad
+  actualizarVelocidad();
 
   // ACTUALIZAR TRAYECTORIA
 
