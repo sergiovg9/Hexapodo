@@ -30,14 +30,17 @@ bool nuevaTrayectoria = true;
 // Indica si la marcha ya fue iniciada.
 bool marchaIniciada = false;
 
-// ==========Control TEMPORAL de giro =======
+// ==========Control TEMPORAL de giro/direccion/altura =======
 const uint8_t PIN_GIRO_IZQUIERDA = 27;
 const uint8_t PIN_GIRO_DERECHA = 26;
 const uint8_t PIN_DIRECCION_50 = 14;
+const uint8_t PIN_ALTURA_110 = 12;
+
 
 // La interrupción solamente avisa que cambió un pin.
 volatile bool cambioModo = true;
 volatile bool cambioDireccion = false;
+volatile bool cambioAltura = false;
 
 // Modo actual del robot.
 MotionPlanner::MovementMode modoMovimiento = MotionPlanner::WALK;
@@ -72,6 +75,12 @@ void IRAM_ATTR interrupcionDireccion() {
   cambioDireccion = true;
 }
 
+// INTERRUPCIÓN PARA CAMBIAR ALTURA
+void IRAM_ATTR interrupcionAltura() {
+  // Solo avisamos al loop.
+  cambioAltura = true;
+}
+
 
 // SETUP
 void setup() {
@@ -83,11 +92,13 @@ void setup() {
   pinMode(PIN_GIRO_IZQUIERDA, INPUT_PULLDOWN);
   pinMode(PIN_GIRO_DERECHA, INPUT_PULLDOWN);
   pinMode(PIN_DIRECCION_50, INPUT_PULLDOWN);
+  pinMode(PIN_ALTURA_110, INPUT_PULLDOWN);
 
   // Detectar tanto cuando se presiona como cuando se suelta.
   attachInterrupt(digitalPinToInterrupt(PIN_GIRO_IZQUIERDA), interrupcionModo, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_GIRO_DERECHA), interrupcionModo, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_DIRECCION_50), interrupcionDireccion, RISING);
+  attachInterrupt(digitalPinToInterrupt(PIN_ALTURA_110), interrupcionAltura, RISING);
 
   delay(500);
 
@@ -173,6 +184,20 @@ void actualizarDireccion() {
   setCommand(50.0f, alturaRobot);
 }
 
+// ACTUALIZAR ALTURA
+void actualizarAltura() {
+
+  // Solo entrar cuando D13 generó una interrupción.
+  if (!cambioAltura) {
+    return;
+  }
+
+  cambioAltura = false;
+
+  // Cambiar altura a -110 mm.
+  setCommand(direccionRobot, -110.0f);
+}
+
 void loop() {
   //========Temporal?
   if (digitalRead(25) == HIGH) {
@@ -185,6 +210,9 @@ void loop() {
 
   // Revisar cambio de dirección.
   actualizarDireccion();
+  
+  // Revisar cambio de altura.
+  actualizarAltura();
 
 
   // ACTUALIZAR TRAYECTORIA
