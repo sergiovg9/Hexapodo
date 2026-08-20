@@ -3,100 +3,265 @@
 
 // CONSTRUCTOR
 Controller::Controller() {
-  // Valores iniciales.
-  _direction = 0.0f;
-  _height = -150.0f;
 
-  // El primer comando debe procesarse.
-  _changed = true;
-}
-
-// BEGIN
-void Controller::begin() {
   // Valores predeterminados.
   _direction = 0.0f;
   _height = -150.0f;
+  _speed = 0.4f;
 
-  // Solicitar cálculo inicial.
+  _movementMode = MotionPlanner::WALK;
+
+  // El primer comando debe calcular trayectoria.
   _changed = true;
+
+  // Banderas de interrupción.
+  _cambioModo = true;
+  _cambioDireccion = false;
+  _cambioAltura = false;
+  _cambioVelocidad = false;
 }
 
 
-// CAMBIAR DIRECCIÓN
+// BEGIN
+void Controller::begin() {
+
+  // Valores predeterminados.
+  _direction = 0.0f;
+  _height = -150.0f;
+  _speed = 0.4f;
+
+  _movementMode = MotionPlanner::WALK;
+
+  _changed = true;
+
+  _cambioModo = true;
+  _cambioDireccion = false;
+  _cambioAltura = false;
+  _cambioVelocidad = false;
+
+
+  // CONFIGURAR PINES
+  pinMode(PIN_GIRO_IZQUIERDA, INPUT_PULLDOWN);
+  pinMode(PIN_GIRO_DERECHA, INPUT_PULLDOWN);
+
+  pinMode(PIN_DIRECCION_50, INPUT_PULLDOWN);
+  pinMode(PIN_ALTURA_110, INPUT_PULLDOWN);
+  pinMode(PIN_VELOCIDAD, INPUT_PULLDOWN);
+
+  // CONFIGURAR INTERRUPCIONES
+  attachInterruptArg(digitalPinToInterrupt(PIN_GIRO_IZQUIERDA), interrupcionModo, this, CHANGE);
+  attachInterruptArg(digitalPinToInterrupt(PIN_GIRO_DERECHA), interrupcionModo, this, CHANGE);
+  attachInterruptArg(digitalPinToInterrupt(PIN_DIRECCION_50), interrupcionDireccion, this, RISING);
+  attachInterruptArg(digitalPinToInterrupt(PIN_ALTURA_110), interrupcionAltura, this, RISING);
+  attachInterruptArg(digitalPinToInterrupt(PIN_VELOCIDAD), interrupcionVelocidad, this, CHANGE);
+}
+
+
+// UPDATE
+void Controller::update() {
+  // Procesar solamente los controles que hayan generado una interrupción.
+  actualizarModoMovimiento();
+  actualizarDireccion();
+  actualizarAltura();
+  actualizarVelocidad();
+}
+
+
+// INTERRUPCIONES
+void IRAM_ATTR Controller::interrupcionModo(void* arg) {
+  Controller* controller = static_cast<Controller*>(arg);
+  controller->_cambioModo = true;
+}
+
+void IRAM_ATTR Controller::interrupcionDireccion(void* arg) {
+  Controller* controller = static_cast<Controller*>(arg);
+  controller->_cambioDireccion = true;
+}
+
+void IRAM_ATTR Controller::interrupcionAltura(void* arg) {
+  Controller* controller = static_cast<Controller*>(arg);
+  controller->_cambioAltura = true;
+}
+
+void IRAM_ATTR Controller::interrupcionVelocidad(void* arg) {
+  Controller* controller = static_cast<Controller*>(arg);
+  controller->_cambioVelocidad = true;
+}
+
+
+// ACTUALIZAR MODO
+void Controller::actualizarModoMovimiento() {
+
+  if (!_cambioModo) {
+    return;
+  }
+
+  _cambioModo = false;
+
+  // Leer estado actual.
+  bool izquierda = digitalRead(PIN_GIRO_IZQUIERDA);
+  bool derecha = digitalRead(PIN_GIRO_DERECHA);
+
+  MotionPlanner::MovementMode nuevoModo;
+
+  if (izquierda && !derecha) {
+
+    nuevoModo = MotionPlanner::TURN_LEFT;
+
+  } else if (derecha && !izquierda) {
+
+    nuevoModo = MotionPlanner::TURN_RIGHT;
+
+  } else {
+
+    nuevoModo = MotionPlanner::WALK;
+  }
+
+
+  // Solo solicitar trayectoria si realmente cambió.
+  if (nuevoModo != _movementMode) {
+
+    _movementMode = nuevoModo;
+
+    _changed = true;
+  }
+}
+
+
+// ACTUALIZAR DIRECCIÓN
+void Controller::actualizarDireccion() {
+
+  if (!_cambioDireccion) {
+    return;
+  }
+
+  _cambioDireccion = false;
+
+  // Control temporal.
+  setDirection(50.0f);
+}
+
+
+// ACTUALIZAR ALTURA
+void Controller::actualizarAltura() {
+
+  if (!_cambioAltura) {
+    return;
+  }
+
+  _cambioAltura = false;
+
+  // Control temporal.
+  setHeight(-110.0f);
+}
+
+
+// ACTUALIZAR VELOCIDAD
+void Controller::actualizarVelocidad() {
+
+  if (!_cambioVelocidad) {
+    return;
+  }
+
+  _cambioVelocidad = false;
+
+  // Control temporal.
+  setSpeed(0.8f);
+}
+
+
+// SET DIRECTION
 void Controller::setDirection(float direction) {
-  // Normalizar dirección.
+
   direction = normalizeDirection(direction);
 
-  // No hacer nada si no cambió.
   if (direction == _direction) {
     return;
   }
 
-  // Guardar nueva dirección.
   _direction = direction;
 
-  // Solicitar nueva trayectoria.
+  // La dirección modifica las trayectorias.
   _changed = true;
 }
 
 
-// CAMBIAR ALTURA
+// SET HEIGHT
 void Controller::setHeight(float height) {
-  // No hacer nada si no cambió.
+
   if (height == _height) {
     return;
   }
 
-  // Guardar nueva altura.
   _height = height;
 
-  // Solicitar nueva trayectoria.
+  // La altura modifica las trayectorias.
   _changed = true;
 }
 
 
-// CAMBIAR COMANDO COMPLETO
+// SET SPEED
+void Controller::setSpeed(float speed) {
+
+  if (speed < 0.0f) {
+    speed = 0.0f;
+  }
+
+  _speed = speed;
+
+  // IMPORTANTE: Cambiar velocidad NO requiere recalcular trayectorias.
+}
+
+
+// SET COMMAND
 void Controller::setCommand(float direction, float height) {
-  // Normalizar dirección.
+
   direction = normalizeDirection(direction);
 
-  // Revisar si algo cambió.
   if (direction == _direction && height == _height) {
     return;
   }
 
-  // Guardar nuevo comando.
   _direction = direction;
   _height = height;
 
-  // Solicitar nueva trayectoria.
   _changed = true;
 }
 
-// OBTENER DIRECCIÓN
+
+// GETTERS
+
 float Controller::getDirection() const {
   return _direction;
 }
 
-// OBTENER ALTURA
 float Controller::getHeight() const {
   return _height;
 }
 
-// COMPROBAR CAMBIO
+float Controller::getSpeed() const {
+  return _speed;
+}
+
+MotionPlanner::MovementMode Controller::getMovementMode() const {
+  return _movementMode;
+}
+
+
+// CAMBIO DE TRAYECTORIA
 bool Controller::hasChanged() const {
   return _changed;
 }
 
-// LIMPIAR CAMBIO
 void Controller::clearChanged() {
-  // El comando ya fue procesado.
+
   _changed = false;
 }
 
+
 // NORMALIZAR DIRECCIÓN
 float Controller::normalizeDirection(float direction) {
-  // Convertir a rango 0° - 360°.
+
   while (direction >= 360.0f) {
     direction -= 360.0f;
   }

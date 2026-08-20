@@ -1,50 +1,87 @@
 #pragma once
 
 #include <Arduino.h>
-
+#include "MotionPlanner.h"
 
 class Controller {
 public:
-  // Constructor.
+
+  // CONSTRUCTOR
   Controller();
 
-  // Inicializar el controlador.
+  // INICIALIZAR
   void begin();
 
-  // Cambiar dirección global del robot. AVANCE NORMAL
+  // Revisar interrupciones y actualizar comandos.
+  void update();
+
+  // CAMBIAR COMANDOS
   void setDirection(float direction);
-
-  // Cambiar altura global del robot.
   void setHeight(float height);
+  void setSpeed(float speed);
 
-  // Cambiar dirección y altura.
   void setCommand(float direction, float height);
 
-  // Obtener dirección actual.
+  // OBTENER COMANDOS
   float getDirection() const;
-
-  // Obtener altura actual.
   float getHeight() const;
+  float getSpeed() const;
 
-  // Indica si el comando cambió.
+  MotionPlanner::MovementMode getMovementMode() const;
+
+  // CAMBIO DE TRAYECTORIA
   bool hasChanged() const;
-
-  // Indica que el nuevo comando ya fue procesado.
   void clearChanged();
 
 
-
 private:
-  
-  // Dirección global del robot en grados.
+
+  // COMANDO ACTUAL
+
   float _direction;
-
-  // Altura global del robot en mm.
   float _height;
+  float _speed;
 
-  // Indica que se necesita una nueva trayectoria.
+  MotionPlanner::MovementMode _movementMode;
+
+  // Dirección, altura o modo cambiaron.
   bool _changed;
 
-  // Normaliza la dirección entre 0° y 360°.
+
+  // PINES TEMPORALES DE CONTROL
+
+  static const uint8_t PIN_GIRO_IZQUIERDA = 27;
+  static const uint8_t PIN_GIRO_DERECHA   = 26;
+
+  static const uint8_t PIN_DIRECCION_50 = 14;
+  static const uint8_t PIN_ALTURA_110   = 12;
+  static const uint8_t PIN_VELOCIDAD    = 13;
+
+
+  // BANDERAS DE INTERRUPCIÓN
+
+  volatile bool _cambioModo;
+  volatile bool _cambioDireccion;
+  volatile bool _cambioAltura;
+  volatile bool _cambioVelocidad;
+
+
+  // INTERRUPCIONES
+
+  static void IRAM_ATTR interrupcionModo(void* arg);
+  static void IRAM_ATTR interrupcionDireccion(void* arg);
+  static void IRAM_ATTR interrupcionAltura(void* arg);
+  static void IRAM_ATTR interrupcionVelocidad(void* arg);
+
+
+  // PROCESAR CAMBIOS
+
+  void actualizarModoMovimiento();
+  void actualizarDireccion();
+  void actualizarAltura();
+  void actualizarVelocidad();
+
+
+  // Normalizar dirección entre 0° y 360°.
   float normalizeDirection(float direction);
 };
