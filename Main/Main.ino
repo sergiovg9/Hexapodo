@@ -5,6 +5,7 @@
 #include "MotionPlanner.h"
 #include "Gait.h"
 #include "Controller.h"
+#include "BluetoothController.h"
 // Temporal
 #include "ValidacionServos.h"
 
@@ -14,6 +15,7 @@ Workspace workspaceManager;
 MotionPlanner motionPlanner;
 Gait gait;
 Controller controller;
+BluetoothController bluetoothController;
 // Temporal
 ValidacionServos validacionServos;
 
@@ -47,6 +49,9 @@ void setup() {
   // Inicializar controlador.
   controller.begin();
 
+  // Inicializar Bluetooth.
+  bluetoothController.begin(&controller);
+
   // HOME
   robot.goHome(&workspaceManager, alturaHome);
   // Mover suavemente hasta HOME.
@@ -74,7 +79,9 @@ void loop() {
     return;
   }
 
-  // CONTROLLER: Procesar interrupciones y actualizar comandos.
+  bluetoothController.update();
+
+  // Procesar interrupciones y comandos.
   controller.update();
 
   // CAMBIO ENTRE MARCHA Y HOME
