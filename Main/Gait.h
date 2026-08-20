@@ -21,6 +21,8 @@ public:
   // Actualizar marcha.
   void update(float speed);
 
+  void stop();
+
 
 
 private:

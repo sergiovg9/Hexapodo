@@ -113,3 +113,9 @@ void Gait::updateLeg(uint8_t legID, bool swing, float t) {
   // Mandar objetivo a la pata.
   _robot->moveLegTo(legID, point.x, point.y, point.z);
 }
+
+// STOP
+void Gait::stop() {
+
+  _running = false;
+}

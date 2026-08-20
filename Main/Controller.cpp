@@ -19,6 +19,11 @@ Controller::Controller() {
   _cambioDireccion = false;
   _cambioAltura = false;
   _cambioVelocidad = false;
+
+  // El robot comienza detenido en HOME.
+  _movementEnabled = false;
+  _movementStateChanged = false;
+  _cambioMarcha = false;
 }
 
 
@@ -38,6 +43,9 @@ void Controller::begin() {
   _cambioDireccion = false;
   _cambioAltura = false;
   _cambioVelocidad = false;
+  _movementEnabled = false;
+  _movementStateChanged = false;
+  _cambioMarcha = false;
 
 
   // CONFIGURAR PINES
@@ -48,12 +56,15 @@ void Controller::begin() {
   pinMode(PIN_ALTURA_110, INPUT_PULLDOWN);
   pinMode(PIN_VELOCIDAD, INPUT_PULLDOWN);
 
+  pinMode(PIN_MARCHA, INPUT_PULLDOWN);
+
   // CONFIGURAR INTERRUPCIONES
   attachInterruptArg(digitalPinToInterrupt(PIN_GIRO_IZQUIERDA), interrupcionModo, this, CHANGE);
   attachInterruptArg(digitalPinToInterrupt(PIN_GIRO_DERECHA), interrupcionModo, this, CHANGE);
   attachInterruptArg(digitalPinToInterrupt(PIN_DIRECCION_50), interrupcionDireccion, this, RISING);
   attachInterruptArg(digitalPinToInterrupt(PIN_ALTURA_110), interrupcionAltura, this, RISING);
   attachInterruptArg(digitalPinToInterrupt(PIN_VELOCIDAD), interrupcionVelocidad, this, CHANGE);
+  attachInterruptArg(digitalPinToInterrupt(PIN_MARCHA), interrupcionMarcha, this, RISING);
 }
 
 
@@ -64,6 +75,7 @@ void Controller::update() {
   actualizarDireccion();
   actualizarAltura();
   actualizarVelocidad();
+  actualizarMarcha();
 }
 
 
@@ -86,6 +98,11 @@ void IRAM_ATTR Controller::interrupcionAltura(void* arg) {
 void IRAM_ATTR Controller::interrupcionVelocidad(void* arg) {
   Controller* controller = static_cast<Controller*>(arg);
   controller->_cambioVelocidad = true;
+}
+
+void IRAM_ATTR Controller::interrupcionMarcha(void* arg) {
+  Controller* controller = static_cast<Controller*>(arg);
+  controller->_cambioMarcha = true;
 }
 
 
@@ -169,6 +186,26 @@ void Controller::actualizarVelocidad() {
   setSpeed(0.8f);
 }
 
+void Controller::actualizarMarcha() {
+
+  if (!_cambioMarcha) {
+    return;
+  }
+
+  _cambioMarcha = false;
+
+  // Alternar entre marcha y HOME.
+  _movementEnabled = !_movementEnabled;
+
+  // Avisar al Main.
+  _movementStateChanged = true;
+
+  // Si vamos a comenzar a caminar, calcular nuevamente las trayectorias.
+  if (_movementEnabled) {
+    _changed = true;
+  }
+}
+
 
 // SET DIRECTION
 void Controller::setDirection(float direction) {
@@ -245,6 +282,18 @@ float Controller::getSpeed() const {
 
 MotionPlanner::MovementMode Controller::getMovementMode() const {
   return _movementMode;
+}
+
+bool Controller::isMovementEnabled() const {
+  return _movementEnabled;
+}
+
+bool Controller::hasMovementStateChanged() const {
+  return _movementStateChanged;
+}
+
+void Controller::clearMovementStateChanged() {
+  _movementStateChanged = false;
 }
 
 
