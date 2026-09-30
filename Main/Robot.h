@@ -60,19 +60,19 @@ public:
   }
 
   Adafruit_PWMServoDriver* getPcaB() {
-    return &_pwmMiddle;
+    return &_pwmLeft;
   }
 
   Adafruit_PWMServoDriver* getPcaC() {
-    return &_pwmRear;
+    return &_pwmRight;
   }
 
 
 private:
   // PCA9685
   Adafruit_PWMServoDriver _pwmFront;
-  Adafruit_PWMServoDriver _pwmMiddle;
-  Adafruit_PWMServoDriver _pwmRear;
+  Adafruit_PWMServoDriver _pwmLeft;
+  Adafruit_PWMServoDriver _pwmRight;
 
   // PATAS
   Leg _legs[6];

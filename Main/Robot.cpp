@@ -2,7 +2,7 @@
 
 // CONSTRUCTOR
 Robot::Robot()
-  : _pwmFront(0x40), _pwmMiddle(0x41), _pwmRear(0x42) {
+  : _pwmFront(0x41), _pwmLeft(0x42), _pwmRight(0x40) {
   // Inicializar posiciones.
   for (int i = 0; i < 6; i++) {
     _legPosition[i] = { 0.0f, 0.0f, 0.0f };
@@ -15,31 +15,31 @@ void Robot::begin() {
   _pwmFront.begin();
   _pwmFront.setPWMFreq(50);
 
-  _pwmMiddle.begin();
-  _pwmMiddle.setPWMFreq(50);
+  _pwmLeft.begin();
+  _pwmLeft.setPWMFreq(50);
 
-  _pwmRear.begin();
-  _pwmRear.setPWMFreq(50);
+  _pwmRight.begin();
+  _pwmRight.setPWMFreq(50);
 
-  // PCA 0x40 - FRONT
+  // PCA 0x41 - FRONT
   // RF = canales 0,1,2
   // LF = canales 3,4,5
   _legs[RF].init(&_pwmFront, 0, 1, 2, L1, L2, L3);
   _legs[LF].init(&_pwmFront, 3, 4, 5, L1, L2, L3);
 
 
-  // PCA 0x41 - LEFT
+  // PCA 0x42 - LEFT
   // LM = canales 0,1,2
   // LR = canales 3,4,5
-  _legs[LM].init(&_pwmMiddle, 0, 1, 2, L1, L2, L3);
-  _legs[LR].init(&_pwmMiddle, 3, 4, 5, L1, L2, L3);
+  _legs[LM].init(&_pwmLeft, 0, 1, 2, L1, L2, L3);
+  _legs[LR].init(&_pwmLeft, 3, 4, 5, L1, L2, L3);
 
 
-  // PCA 0x42 - RIGHT
+  // PCA 0x40 - RIGHT
   // RM = canales 0,1,2
   // RR = canales 3,4,5
-  _legs[RM].init(&_pwmRear, 0, 1, 2, L1, L2, L3);
-  _legs[RR].init(&_pwmRear, 3, 4, 5, L1, L2, L3);
+  _legs[RM].init(&_pwmRight, 0, 1, 2, L1, L2, L3);
+  _legs[RR].init(&_pwmRight, 3, 4, 5, L1, L2, L3);
 }
 
 // HOME
