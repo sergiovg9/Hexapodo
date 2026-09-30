@@ -56,20 +56,23 @@ public:
   /*=========Esto es temporal(?)==========*/
   // Permite usar las PCA ya inicializadas
   Adafruit_PWMServoDriver* getPcaA() {
-    return &_pwmRight;
+    return &_pwmFront;
   }
+
   Adafruit_PWMServoDriver* getPcaB() {
-    return &_pwmLeft;
+    return &_pwmMiddle;
+  }
+
+  Adafruit_PWMServoDriver* getPcaC() {
+    return &_pwmRear;
   }
 
 
 private:
   // PCA9685
-  // PCA de las patas derechas.
-  Adafruit_PWMServoDriver _pwmRight;
-
-  // PCA de las patas izquierdas.
-  Adafruit_PWMServoDriver _pwmLeft;
+  Adafruit_PWMServoDriver _pwmFront;
+  Adafruit_PWMServoDriver _pwmMiddle;
+  Adafruit_PWMServoDriver _pwmRear;
 
   // PATAS
   Leg _legs[6];

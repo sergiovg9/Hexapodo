@@ -35,7 +35,7 @@ void setup() {
   robot.begin();
 
   // TEMPORAL
-  validacionServos.begin(robot.getPcaA(), robot.getPcaB());
+  validacionServos.begin(robot.getPcaA(), robot.getPcaB(), robot.getPcaC());
 
   // Inicializar workspace.
   workspaceManager.begin();

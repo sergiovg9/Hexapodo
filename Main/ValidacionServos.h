@@ -9,13 +9,14 @@ public:
   ValidacionServos() {
     _pcaA = nullptr;
     _pcaB = nullptr;
+    _pcaC = nullptr;
   }
 
   // Recibe las PCA que YA fueron inicializadas por Robot
-  void begin(Adafruit_PWMServoDriver* pcaA,
-             Adafruit_PWMServoDriver* pcaB) {
+  void begin(Adafruit_PWMServoDriver* pcaA, Adafruit_PWMServoDriver* pcaB, Adafruit_PWMServoDriver* pcaC) {
     _pcaA = pcaA;
     _pcaB = pcaB;
+    _pcaC = pcaC;
 
     pinMode(25, INPUT);
 
@@ -75,6 +76,7 @@ private:
 
   Adafruit_PWMServoDriver* _pcaA;
   Adafruit_PWMServoDriver* _pcaB;
+  Adafruit_PWMServoDriver* _pcaC;
 
   static constexpr int SERVO_MIN = 600;
   static constexpr int SERVO_MAX = 2600;
@@ -119,7 +121,7 @@ private:
   // Mover un servo
   // ==============================
   void moverServo(int servo, float angulo) {
-    if (_pcaA == nullptr || _pcaB == nullptr)
+    if (_pcaA == nullptr || _pcaB == nullptr || _pcaC == nullptr)
       return;
 
     angulo = constrain(angulo, -90.0f, 90.0f);
@@ -130,14 +132,19 @@ private:
     uint16_t ticks =
       (uint16_t)((us * SERVO_FREQ * 4096L) / 1000000L);
 
-    // Servos 0 - 8
-    if (servo < 9) {
+    // Servos 0 - 5 -> PCA A
+    if (servo < 6) {
       _pcaA->setPWM(servo, 0, ticks);
     }
 
-    // Servos 9 - 17
+    // Servos 6 - 11 -> PCA B
+    else if (servo < 12) {
+      _pcaB->setPWM(servo - 6, 0, ticks);
+    }
+
+    // Servos 12 - 17 -> PCA C
     else {
-      _pcaB->setPWM(servo - 9, 0, ticks);
+      _pcaC->setPWM(servo - 12, 0, ticks);
     }
   }
 
@@ -146,13 +153,19 @@ private:
   // Apagar señal de UN servo
   // ==============================
   void apagarServo(int servo) {
-    if (_pcaA == nullptr || _pcaB == nullptr)
+    if (_pcaA == nullptr || _pcaB == nullptr || _pcaC == nullptr)
       return;
 
-    if (servo < 9) {
+    if (servo < 6) {
       _pcaA->setPWM(servo, 0, 0);
-    } else {
-      _pcaB->setPWM(servo - 9, 0, 0);
+    }
+
+    else if (servo < 12) {
+      _pcaB->setPWM(servo - 6, 0, 0);
+    }
+
+    else {
+      _pcaC->setPWM(servo - 12, 0, 0);
     }
   }
 
@@ -164,9 +177,10 @@ private:
     if (_pcaA == nullptr || _pcaB == nullptr)
       return;
 
-    for (int canal = 0; canal < 9; canal++) {
+    for (int canal = 0; canal < 6; canal++) {
       _pcaA->setPWM(canal, 0, 0);
       _pcaB->setPWM(canal, 0, 0);
+      _pcaC->setPWM(canal, 0, 0);
     }
   }
 };
