@@ -14,6 +14,8 @@ public:
   BluetoothController() {
     _controller = nullptr;
     _buffer = "";
+    _giroActivo = false;
+    _estadoAnteriorMovimiento = false;
   }
 
 
@@ -30,7 +32,6 @@ public:
   // UPDATE
   void update() {
 
-    // Leer solamente los datos disponibles.
     while (_bluetooth.available()) {
 
       char caracter = _bluetooth.read();
@@ -70,83 +71,143 @@ private:
 
     comando.trim();
 
-    // Formato mínimo:
-    // R: 255
     if (comando.length() < 3) {
       return;
     }
 
-    char canal = comando.charAt(0);
-
+    // Buscar ":".
     int posicionDosPuntos = comando.indexOf(':');
 
     if (posicionDosPuntos < 0) {
       return;
     }
 
-    int valor = comando.substring(posicionDosPuntos + 1).toInt();
+    // Canal.
+    char canal = comando.charAt(0);
 
-    // Limitar entrada.
-    valor = constrain(valor, 0, 255);
-
+    // Valor después de ":".
+    String valorTexto = comando.substring(posicionDosPuntos + 1);
+    valorTexto.trim();
 
     // DIRECCIÓN
-    if (canal == 'R' || canal == 'r') {
+    if (canal == 'D' || canal == 'd') {
 
-      float direccion = convertirDireccion(valor);
+      float direccion = valorTexto.toFloat();
 
       _controller->setDirection(direccion);
     }
 
+    // GIRO DERECHA
+    else if (canal == 'R' || canal == 'r') {
+
+      bool activo = convertirBooleano(valorTexto);
+
+      if (activo) {
+
+        // Guardar estado antes de comenzar el giro.
+        if (!_giroActivo) {
+          _estadoAnteriorMovimiento = _controller->isMovementEnabled();
+          _giroActivo = true;
+        }
+
+        _controller->setMovementMode(MotionPlanner::TURN_RIGHT);
+      }
+
+      else {
+
+        // Regresar al estado anterior.
+        _giroActivo = false;
+
+        if (_estadoAnteriorMovimiento) {
+          // Estaba caminando.
+          _controller->setMovementMode(MotionPlanner::WALK);
+        }
+
+        else {
+          // Estaba en HOME.
+          _controller->setMovementEnabled(false);
+        }
+      }
+    }
+
+    // GIRO IZQUIERDA
+    else if (canal == 'L' || canal == 'l') {
+
+      bool activo = convertirBooleano(valorTexto);
+
+      if (activo) {
+
+        _controller->setMovementMode(MotionPlanner::TURN_LEFT);
+
+      } else {
+
+        actualizarModoGiro();
+      }
+    }
+
+    // GIRO IZQUIERDA
+    else if (canal == 'L' || canal == 'l') {
+
+      bool activo = convertirBooleano(valorTexto);
+
+      if (activo) {
+
+        // Guardar estado antes de comenzar el giro.
+        if (!_giroActivo) {
+          _estadoAnteriorMovimiento = _controller->isMovementEnabled();
+          _giroActivo = true;
+        }
+
+        _controller->setMovementMode(MotionPlanner::TURN_LEFT);
+      }
+
+      else {
+
+        // Regresar al estado anterior.
+        _giroActivo = false;
+
+        if (_estadoAnteriorMovimiento) {
+          // Estaba caminando.
+          _controller->setMovementMode(MotionPlanner::WALK);
+        }
+
+        else {
+          // Estaba en HOME.
+          _controller->setMovementEnabled(false);
+        }
+      }
+    }
 
     // ALTURA
-    else if (canal == 'G' || canal == 'g') {
+    else if (canal == 'A' || canal == 'a') {
 
-      float altura = convertirAltura(valor);
+      float altura = valorTexto.toFloat();
 
       _controller->setHeight(altura);
     }
 
-
     // VELOCIDAD
-    else if (canal == 'B' || canal == 'b') {
+    else if (canal == 'V' || canal == 'v') {
 
-      float velocidad = convertirVelocidad(valor);
+      float velocidad = valorTexto.toFloat();
 
       _controller->setSpeed(velocidad);
     }
   }
 
+  // ACTUALIZAR MODO DESPUÉS DE SOLTAR R/L
+  void actualizarModoGiro() {
 
-  // R -> DIRECCIÓN
-  float convertirDireccion(int valor) {
-
-    // 0   -> +180°
-    // 127.5 -> 0°
-    // 255 -> -180°
-    float direccion = 180.0f - ((float)valor * 360.0f / 255.0f);
-
-    // Redondear al múltiplo de 2° más cercano.
-    direccion = roundf(direccion / 2.0f) * 2.0f;
-
-    return direccion;
+    // Si ninguno de los dos botones está activo, regresar a WALK.
+    _controller->setMovementMode(MotionPlanner::WALK);
   }
 
+  // CONVERTIR TRUE/FALSE
+  / bool convertirBooleano(String valor) {
 
-  // G -> ALTURA
-  float convertirAltura(int valor) {
+    valor.trim();
+    valor.toLowerCase();
 
-    // 0   -> -200 mm
-    // 255 -> -100 mm
-    return -200.0f + ((float)valor * 100.0f / 255.0f);
-  }
-
-
-  // B -> VELOCIDAD
-  float convertirVelocidad(int valor) {
-
-    // 0   -> 0.1
-    // 255 -> 1.0
-    return 0.1f + ((float)valor * 0.9f / 255.0f);
+    return valor == "true";
   }
 };

@@ -22,6 +22,9 @@ public:
 
   void setCommand(float direction, float height);
 
+  void setMovementMode(MotionPlanner::MovementMode mode);
+  void setMovementEnabled(bool enabled);
+  
   // OBTENER COMANDOS
   float getDirection() const;
   float getHeight() const;

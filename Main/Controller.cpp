@@ -249,6 +249,38 @@ void Controller::setSpeed(float speed) {
   // IMPORTANTE: Cambiar velocidad NO requiere recalcular trayectorias.
 }
 
+// SET MOVEMENT MODE
+void Controller::setMovementMode(MotionPlanner::MovementMode mode) {
+
+  if (mode == _movementMode) {
+    return;
+  }
+
+  _movementMode = mode;
+
+  // El cambio de modo requiere recalcular las trayectorias.
+  _changed = true;
+}
+
+
+// SET MOVEMENT ENABLED
+void Controller::setMovementEnabled(bool enabled) {
+
+  if (enabled == _movementEnabled) {
+    return;
+  }
+
+  _movementEnabled = enabled;
+
+  // Avisar al Main que cambió entre marcha y HOME.
+  _movementStateChanged = true;
+
+  // Si comenzamos a caminar, recalcular trayectoria.
+  if (_movementEnabled) {
+    _changed = true;
+  }
+}
+
 
 // SET COMMAND
 void Controller::setCommand(float direction, float height) {
