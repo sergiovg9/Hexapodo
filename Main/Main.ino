@@ -111,8 +111,17 @@ void loop() {
     controller.clearMovementStateChanged();
   }
 
-  // ACTUALIZAR TRAYECTORIA DURANTE LA MARCHA
-  if (controller.isMovementEnabled()) {
+  if (!controller.isMovementEnabled() && !controller.isTurning() && controller.hasChanged()) {
+
+    controller.clearChanged();
+
+    gait.stop();
+
+    robot.goHome(&workspaceManager, alturaHome);
+  }
+
+  // ACTUALIZAR TRAYECTORIA DURANTE LA MARCHA O GIRO
+  if (controller.isMovementEnabled() || controller.isTurning()) {
 
     if (controller.hasChanged()) {
 
@@ -123,8 +132,14 @@ void loop() {
       }
     }
 
-    // MARCHA
     gait.update(controller.getSpeed());
+  }
+
+  if (controller.isGaitStartRequired()) {
+
+    gait.start();
+
+    controller.clearGaitStartRequired();
   }
 
   // Actualizar servos.

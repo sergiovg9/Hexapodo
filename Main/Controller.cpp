@@ -10,6 +10,7 @@ Controller::Controller() {
   _speed = 0.4f;
 
   _movementMode = MotionPlanner::WALK;
+  _modoAnterior = MotionPlanner::WALK;
 
   // El primer comando debe calcular trayectoria.
   _changed = true;
@@ -24,6 +25,7 @@ Controller::Controller() {
   _movementEnabled = false;
   _movementStateChanged = false;
   _cambioMarcha = false;
+  _gaitStartRequired = false;
 }
 
 
@@ -36,6 +38,7 @@ void Controller::begin() {
   _speed = 0.4f;
 
   _movementMode = MotionPlanner::WALK;
+  _modoAnterior = MotionPlanner::WALK;
 
   _changed = true;
 
@@ -46,6 +49,7 @@ void Controller::begin() {
   _movementEnabled = false;
   _movementStateChanged = false;
   _cambioMarcha = false;
+  _gaitStartRequired = false;
 
 
   // CONFIGURAR PINES
@@ -115,7 +119,6 @@ void Controller::actualizarModoMovimiento() {
 
   _cambioModo = false;
 
-  // Leer estado actual.
   bool izquierda = digitalRead(PIN_GIRO_IZQUIERDA);
   bool derecha = digitalRead(PIN_GIRO_DERECHA);
 
@@ -134,16 +137,18 @@ void Controller::actualizarModoMovimiento() {
     nuevoModo = MotionPlanner::WALK;
   }
 
-
-  // Solo solicitar trayectoria si realmente cambió.
   if (nuevoModo != _movementMode) {
+
 
     _movementMode = nuevoModo;
 
     _changed = true;
+
+    if (!_movementEnabled && (nuevoModo == MotionPlanner::TURN_LEFT || nuevoModo == MotionPlanner::TURN_RIGHT)) {
+      _gaitStartRequired = true;
+    }
   }
 }
-
 
 // ACTUALIZAR DIRECCIÓN
 void Controller::actualizarDireccion() {
@@ -261,6 +266,10 @@ void Controller::setMovementMode(MotionPlanner::MovementMode mode) {
 
   // El modo modifica las trayectorias.
   _changed = true;
+
+  if (!_movementEnabled && (mode == MotionPlanner::TURN_LEFT || mode == MotionPlanner::TURN_RIGHT)) {
+    _gaitStartRequired = true;
+  }
 }
 
 // SET MOVEMENT ENABLED
@@ -338,6 +347,18 @@ void Controller::clearChanged() {
   _changed = false;
 }
 
+bool Controller::isTurning() const {
+
+  return _movementMode == MotionPlanner::TURN_LEFT || _movementMode == MotionPlanner::TURN_RIGHT;
+}
+
+bool Controller::isGaitStartRequired() const {
+  return _gaitStartRequired;
+}
+
+void Controller::clearGaitStartRequired() {
+  _gaitStartRequired = false;
+}
 
 // NORMALIZAR DIRECCIÓN
 float Controller::normalizeDirection(float direction) {

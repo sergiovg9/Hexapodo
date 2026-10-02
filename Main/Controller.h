@@ -41,6 +41,9 @@ public:
   bool isMovementEnabled() const;
   bool hasMovementStateChanged() const;
   void clearMovementStateChanged();
+  bool isTurning() const;
+  bool isGaitStartRequired() const;
+  void clearGaitStartRequired();
 
 
 private:
@@ -52,6 +55,7 @@ private:
   float _speed;
 
   MotionPlanner::MovementMode _movementMode;
+  MotionPlanner::MovementMode _modoAnterior;
 
   // Dirección, altura o modo cambiaron.
   bool _changed;
@@ -78,6 +82,7 @@ private:
   volatile bool _cambioAltura;
   volatile bool _cambioVelocidad;
   volatile bool _cambioMarcha;
+  volatile bool _gaitStartRequired;
 
   // INTERRUPCIONES
   static void IRAM_ATTR interrupcionModo(void* arg);
