@@ -20,6 +20,10 @@ public:
   void setHeight(float height);
   void setSpeed(float speed);
 
+  // CONTROL DESDE BLUETOOTH
+  void setMovementMode(MotionPlanner::MovementMode mode);
+  void setMovementEnabled(bool enabled);
+
   void setCommand(float direction, float height);
 
   // OBTENER COMANDOS

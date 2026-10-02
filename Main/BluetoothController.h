@@ -22,7 +22,6 @@ public:
 
     _controller = controller;
 
-    // Nombre que aparecerá al buscar el ESP32 por Bluetooth.
     _bluetooth.begin("Hexapod");
   }
 
@@ -70,83 +69,102 @@ private:
 
     comando.trim();
 
-    // Formato mínimo:
-    // R: 255
     if (comando.length() < 3) {
       return;
     }
 
+    // Obtener canal.
     char canal = comando.charAt(0);
 
+    // Buscar ':'.
     int posicionDosPuntos = comando.indexOf(':');
 
     if (posicionDosPuntos < 0) {
       return;
     }
 
-    int valor = comando.substring(posicionDosPuntos + 1).toInt();
-
-    // Limitar entrada.
-    valor = constrain(valor, 0, 255);
-
+    // Obtener valor como texto.
+    String valorTexto = comando.substring(posicionDosPuntos + 1);
+    valorTexto.trim();
 
     // DIRECCIÓN
-    if (canal == 'R' || canal == 'r') {
 
-      float direccion = convertirDireccion(valor);
+    if (canal == 'D' || canal == 'd') {
+
+      float direccion = valorTexto.toFloat();
 
       _controller->setDirection(direccion);
     }
 
+    // GIRO DERECHA
+
+    else if (canal == 'R' || canal == 'r') {
+
+      bool activo = convertirBooleano(valorTexto);
+
+      if (activo) {
+
+        _controller->setMovementMode(MotionPlanner::TURN_RIGHT);
+
+      } else {
+
+        // Al soltar R, volver a WALK.
+        _controller->setMovementMode(MotionPlanner::WALK);
+      }
+    }
+
+    // GIRO IZQUIERDA
+
+    else if (canal == 'L' || canal == 'l') {
+
+      bool activo = convertirBooleano(valorTexto);
+
+      if (activo) {
+
+        _controller->setMovementMode(MotionPlanner::TURN_LEFT);
+
+      } else {
+
+        // Al soltar L, volver a WALK.
+        _controller->setMovementMode(MotionPlanner::WALK);
+      }
+    }
+
+    // MARCHA / HOME
+
+    else if (canal == 'H' || canal == 'h') {
+
+      bool activo = convertirBooleano(valorTexto);
+
+      _controller->setMovementEnabled(!activo);
+    }
 
     // ALTURA
-    else if (canal == 'G' || canal == 'g') {
 
-      float altura = convertirAltura(valor);
+    else if (canal == 'A' || canal == 'a') {
+
+      float altura = valorTexto.toFloat();
 
       _controller->setHeight(altura);
     }
 
-
     // VELOCIDAD
-    else if (canal == 'B' || canal == 'b') {
 
-      float velocidad = convertirVelocidad(valor);
+    else if (canal == 'V' || canal == 'v') {
+
+      float velocidad = valorTexto.toFloat();
 
       _controller->setSpeed(velocidad);
     }
   }
 
 
-  // R -> DIRECCIÓN
-  float convertirDireccion(int valor) {
+  // CONVERTIR TRUE / FALSE
+  bool convertirBooleano(String valor) {
 
-    // 0   -> +180°
-    // 127.5 -> 0°
-    // 255 -> -180°
-    float direccion = 180.0f - ((float)valor * 360.0f / 255.0f);
+    valor.trim();
+    valor.toLowerCase();
 
-    // Redondear al múltiplo de 2° más cercano.
-    direccion = roundf(direccion / 2.0f) * 2.0f;
-
-    return direccion;
-  }
-
-
-  // G -> ALTURA
-  float convertirAltura(int valor) {
-
-    // 0   -> -200 mm
-    // 255 -> -100 mm
-    return -200.0f + ((float)valor * 100.0f / 255.0f);
-  }
-
-
-  // B -> VELOCIDAD
-  float convertirVelocidad(int valor) {
-
-    // 0   -> 0.1
-    // 255 -> 1.0
-    return 0.1f + ((float)valor * 0.9f / 255.0f);
+    return valor == "true";
   }
 };
